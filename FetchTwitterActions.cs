@@ -1,35 +1,54 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using TwitterContributions.Models;
 
-namespace Finlay.Function
+namespace TwitterContributions.Function
 {
     public static class FetchTwitterActions
     {
         [FunctionName("FetchTwitterActions")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            log.LogInformation("C# FetchTwitterActions trigger function processed a request.");
 
-            string name = req.Query["name"];
+            string username = req.Query["username"];
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            var result = await TwitterClient.FetchUserActivityInPastYear(username, log);
+            var likes = await TwitterClient.FetchUserLikesInPastYear(username, log);
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
+            var hashset = new Dictionary<string, DaySummary>();
+            foreach(Status status in result)
+            {
+                string date = status.CreatedAt.ToString("yyyy:MM:dd");
+                if (!hashset.TryGetValue(date, out DaySummary summary))
+                {
+                    summary = new DaySummary { Date = date };
+                }
+                summary.StatusCount++;
+                hashset[date] = summary;
+            }
+            
+            foreach (Status status in likes)
+            {
+                string date = status.CreatedAt.ToString("yyyy:MM:dd");
+                if (!hashset.TryGetValue(date, out DaySummary summary))
+                {
+                    summary = new DaySummary { Date = date };
+                }
+                summary.LikeCount++;
+                hashset[date] = summary;
+            }
 
-            return new OkObjectResult(responseMessage);
+            return new OkObjectResult(hashset.Values.ToList());
         }
     }
 }
