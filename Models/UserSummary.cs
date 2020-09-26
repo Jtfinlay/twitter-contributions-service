@@ -1,8 +1,18 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace TwitterContributions.Models
 {
+    public class UserSummary
+    {
+        [JsonProperty("run_time")]
+        public DateTimeOffset RunTime { get; set; }
+
+        [JsonProperty("summary")]
+        public List<DaySummary> Summary { get; set; }
+    }
+
     public class DaySummary
     {
         [JsonProperty("date")]
