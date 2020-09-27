@@ -11,14 +11,14 @@ using Newtonsoft.Json;
 
 namespace TwitterContributions
 {
-    public static class FetchSubmission
+    public static class CheckStatus
     {
-        [FunctionName("FetchSubmission")]
+        [FunctionName("CheckStatus")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# FetchSubmission HTTP trigger function processed a request.");
+            log.LogInformation("C# CheckStatus HTTP trigger function processed a request.");
 
             string username = req.Query["username"];
 

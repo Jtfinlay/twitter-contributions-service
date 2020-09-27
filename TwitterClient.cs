@@ -34,7 +34,7 @@ namespace TwitterContributions
         public static async Task<List<Status>> FetchUserActivityInPastYear(string userName, ILogger log)
         {
             List<Status> statuses = new List<Status>();
-            DateTime targetDate = DateTime.Now.AddYears(-1);
+            DateTime targetDate = DateTime.Now.AddDays(-371);
 
             ulong? nextId = null;
             List<Status> result;
@@ -60,7 +60,7 @@ namespace TwitterContributions
         public static async Task<List<Status>> FetchUserLikesInPastYear(string userName, ILogger log)
         {
             List<Status> statuses = new List<Status>();
-            DateTime targetDate = DateTime.Now.AddYears(-1);
+            DateTime targetDate = DateTime.Now.AddDays(-371);
 
             ulong? nextId = null;
             List<Status> result;
