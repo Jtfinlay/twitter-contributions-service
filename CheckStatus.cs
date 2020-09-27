@@ -43,6 +43,17 @@ namespace TwitterContributions
                 return new OkObjectResult(summary);
             }
 
+            // Check if we've hit rate limit
+            table = tableClient.GetTableReference("rateLimit");
+            table.CreateIfNotExists();
+
+            var utc = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            query = table.Execute(TableOperation.Retrieve<RateLimitReset>("pk", "rk"));
+            if (query.Result is RateLimitReset rateReset && utc.AddSeconds(rateReset.ResetTime) > DateTime.UtcNow)
+            {
+                return new RateLimitedActionResult(rateReset.ResetTime);
+            }
+
             return (ActionResult)new NotFoundResult();
         }
     }

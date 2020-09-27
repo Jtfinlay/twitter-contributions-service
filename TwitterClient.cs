@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Http;
 using TwitterContributions.Models;
 
 namespace TwitterContributions
@@ -85,66 +86,64 @@ namespace TwitterContributions
 
         public static async Task<TwitterUser> FetchUserDetails(string userName, ILogger log)
         {
-            try
+            using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            HttpResponseMessage response = await client.GetAsync(
+                $"users/show.json?screen_name={userName}",
+                cancellationToken.Token
+            );
+            response.EnsureSuccessStatusCode();
+
+            if (response.IsSuccessStatusCode)
             {
-                using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-                HttpResponseMessage response = await client.GetAsync(
-                    $"users/show.json?screen_name={userName}",
-                    cancellationToken.Token
-                );
-                response.EnsureSuccessStatusCode();
-
                 return await response.Content.ReadAsAsync<TwitterUser>();
             }
-            catch (Exception e)
+            else
             {
-                log.LogError("FetchUserTimeline failed.", e);
-                throw;
+                log.LogError("FetchUserDetails failed.", response);
+                throw new HttpResponseException(response);
             }
         }
 
         private static async Task<List<Status>> FetchUserTimeline(string userName, ILogger log, ulong? maxId = null)
         {
-            try
+            using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            string maxIdParam = (maxId == null) ? string.Empty : $"max_id={maxId}";
+            HttpResponseMessage response = await client.GetAsync(
+                $"statuses/user_timeline.json?screen_name={userName}&count=200&include_rts=true&trim_user=true&{maxIdParam}",
+                cancellationToken.Token
+            );
+
+            if (response.IsSuccessStatusCode)
             {
-                using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-                string maxIdParam = (maxId == null) ? string.Empty : $"max_id={maxId}";
-                HttpResponseMessage response = await client.GetAsync(
-                    $"statuses/user_timeline.json?screen_name={userName}&count=200&include_rts=true&trim_user=true&{maxIdParam}",
-                    cancellationToken.Token
-                );
-                response.EnsureSuccessStatusCode();
-
                 return await response.Content.ReadAsAsync<List<Status>>();
             }
-            catch (Exception e)
+            else
             {
-                log.LogError("FetchUserTimeline failed.", e);
-                throw;
+                log.LogError("FetchUserTimeline failed.", response);
+                throw new HttpResponseException(response);
             }
         }
 
         private static async Task<List<Status>> FetchUserLikes(string userName, ILogger log, ulong? maxId = null)
         {
-            try
+            using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            string maxIdParam = (maxId == null) ? string.Empty : $"max_id={maxId}";
+            HttpResponseMessage response = await client.GetAsync(
+                $"favorites/list.json?screen_name={userName}&count=200&include_entities=true&{maxIdParam}",
+                cancellationToken.Token
+            );
+
+            if (response.IsSuccessStatusCode)
             {
-                using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
-                string maxIdParam = (maxId == null) ? string.Empty : $"max_id={maxId}";
-                HttpResponseMessage response = await client.GetAsync(
-                    $"favorites/list.json?screen_name={userName}&count=200&include_entities=true&{maxIdParam}",
-                    cancellationToken.Token
-                );
-                response.EnsureSuccessStatusCode();
-
                 return await response.Content.ReadAsAsync<List<Status>>();
             }
-            catch (Exception e)
+            else
             {
-                log.LogError("FetchUserLikes failed.", e);
-                throw;
+                log.LogError("FetchUserLikes failed.", response);
+                throw new HttpResponseException(response);
             }
         }
     }

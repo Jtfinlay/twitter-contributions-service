@@ -5,7 +5,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using System.Web.Http;
 using TwitterContributions.Models;
 
 namespace TwitterContributions
@@ -28,11 +30,58 @@ namespace TwitterContributions
             }
 
             // Check if we've hit rate limit
+            string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
+            var storageAccount = CloudStorageAccount.Parse(connectionString);
+            var tableClient = storageAccount.CreateCloudTableClient();
+            var table = tableClient.GetTableReference("rateLimit");
+            table.CreateIfNotExists();
+
+            RateLimitReset rateReset = null;
+            var utc = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            var query = table.Execute(TableOperation.Retrieve<RateLimitReset>("pk", "rk"));
+            if (query.Result is RateLimitReset tmp)
+            {
+                rateReset = tmp;
+                if (utc.AddSeconds(rateReset.ResetTime) > DateTime.UtcNow)
+                {
+                    log.LogInformation($"Have not reached rate limit timestamp of {utc.AddSeconds(rateReset.ResetTime)}. Current: {DateTime.UtcNow}.");
+                    throw new HttpResponseException((HttpStatusCode)429);
+                }
+            }
 
             // Lookup data from Twitter
-            var result = await TwitterClient.FetchUserActivityInPastYear(username, log);
-            var likes = await TwitterClient.FetchUserLikesInPastYear(username, log);
-            var userDetails = await TwitterClient.FetchUserDetails(username, log);
+            List<Status> result, likes;
+            TwitterUser userDetails;
+            try
+            {
+                result = await TwitterClient.FetchUserActivityInPastYear(username, log);
+                likes = await TwitterClient.FetchUserLikesInPastYear(username, log);
+                userDetails = await TwitterClient.FetchUserDetails(username, log);
+            }
+            catch (HttpResponseException e)
+            {
+                if (e.Response.StatusCode == (HttpStatusCode)429)
+                {
+                    if (rateReset == null)
+                    {
+                        rateReset = new RateLimitReset();
+                        rateReset.PartitionKey = "pk";
+                        rateReset.RowKey = "rk";
+                    }
+                    if (e.Response.Headers.TryGetValues("x-rate-limit-reset", out IEnumerable<string> resetTime))
+                    {
+                        var newTime = Double.Parse(resetTime.First());
+                        if (newTime > rateReset.ResetTime)
+                        {
+                            rateReset.ResetTime = newTime;
+                            table.Execute(TableOperation.InsertOrReplace(rateReset));
+                            log.LogInformation("Updated rateLimit to " + newTime);
+                        }
+                    }
+                }
+
+                throw;
+            }
 
             var hashset = new Dictionary<string, DaySummary>();
             foreach (Status status in result)
@@ -58,11 +107,7 @@ namespace TwitterContributions
             }
 
             // Write results to storage. Bindings don't support update, apparently :/
-
-            string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
-            var storageAccount = CloudStorageAccount.Parse(connectionString);
-            var tableClient = storageAccount.CreateCloudTableClient();
-            var table = tableClient.GetTableReference("users");
+            table = tableClient.GetTableReference("users");
             table.CreateIfNotExists();
 
             if (user == null)
