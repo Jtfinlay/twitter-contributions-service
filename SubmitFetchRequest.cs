@@ -28,6 +28,8 @@ namespace TwitterContributions
                 return new BadRequestObjectResult("Please pass a username on the query string");
             }
 
+            username = username.ToLower();
+
             // Check if data already exists in storage and is recent
             string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
             var storageAccount = CloudStorageAccount.Parse(connectionString);
