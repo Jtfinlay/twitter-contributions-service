@@ -36,7 +36,7 @@ namespace TwitterContributions
             var hashset = new Dictionary<string, DaySummary>();
             foreach (Status status in result)
             {
-                string date = status.CreatedAt.ToString("yyyy:MM:dd");
+                string date = status.CreatedAt.ToString("yyyy-MM-dd");
                 if (!hashset.TryGetValue(date, out DaySummary summary))
                 {
                     summary = new DaySummary { Date = date };
@@ -47,7 +47,7 @@ namespace TwitterContributions
 
             foreach (Status status in likes)
             {
-                string date = status.CreatedAt.ToString("yyyy:MM:dd");
+                string date = status.CreatedAt.ToString("yyyy-MM-dd");
                 if (!hashset.TryGetValue(date, out DaySummary summary))
                 {
                     summary = new DaySummary { Date = date };
