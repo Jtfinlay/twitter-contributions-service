@@ -4,6 +4,6 @@ namespace TwitterContributions.Models
 {
     public class UserEntity : TableEntity
     {
-        public string Summary { get; set; }
+        public string Entity { get; set; }
     }
 }

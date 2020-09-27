@@ -38,11 +38,8 @@ namespace TwitterContributions
             var query = table.Execute(TableOperation.Retrieve<UserEntity>(username, username));
             if (query.Result is UserEntity entity && entity.Timestamp >= DateTime.Now.Subtract(Constants.UserExpiry))
             {
-                var summary = new UserSummary
-                {
-                    RunTime = entity.Timestamp,
-                    Summary = JsonConvert.DeserializeObject<List<DaySummary>>(entity.Summary)
-                };
+                var summary = JsonConvert.DeserializeObject<UserSummary>(entity.Entity);
+                summary.RunTime = entity.Timestamp;
                 return new OkObjectResult(summary);
             }
 

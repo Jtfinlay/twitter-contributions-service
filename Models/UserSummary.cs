@@ -11,6 +11,9 @@ namespace TwitterContributions.Models
 
         [JsonProperty("summary")]
         public List<DaySummary> Summary { get; set; }
+
+        [JsonProperty("user_details")]
+        public TwitterUser UserDetails { get; set; }
     }
 
     public class DaySummary

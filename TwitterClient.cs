@@ -83,6 +83,27 @@ namespace TwitterContributions
             return statuses;
         }
 
+        public static async Task<TwitterUser> FetchUserDetails(string userName, ILogger log)
+        {
+            try
+            {
+                using var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                HttpResponseMessage response = await client.GetAsync(
+                    $"users/show.json?screen_name={userName}",
+                    cancellationToken.Token
+                );
+                response.EnsureSuccessStatusCode();
+
+                return await response.Content.ReadAsAsync<TwitterUser>();
+            }
+            catch (Exception e)
+            {
+                log.LogError("FetchUserTimeline failed.", e);
+                throw;
+            }
+        }
+
         private static async Task<List<Status>> FetchUserTimeline(string userName, ILogger log, ulong? maxId = null)
         {
             try

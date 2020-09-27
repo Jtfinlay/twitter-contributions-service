@@ -32,6 +32,7 @@ namespace TwitterContributions
             // Lookup data from Twitter
             var result = await TwitterClient.FetchUserActivityInPastYear(username, log);
             var likes = await TwitterClient.FetchUserLikesInPastYear(username, log);
+            var userDetails = await TwitterClient.FetchUserDetails(username, log);
 
             var hashset = new Dictionary<string, DaySummary>();
             foreach (Status status in result)
@@ -72,7 +73,11 @@ namespace TwitterContributions
             }
 
             user.Timestamp = DateTime.Now;
-            user.Summary = JsonConvert.SerializeObject(hashset.Values.ToList());
+            user.Entity = JsonConvert.SerializeObject(new UserSummary
+            {
+                Summary = hashset.Values.ToList(),
+                UserDetails = userDetails
+            });
             table.Execute(TableOperation.InsertOrReplace(user));
         }
     }
