@@ -12,9 +12,9 @@ using TwitterContributions.Models;
 
 namespace TwitterContributions
 {
-    public static class FetchTwitterTimeline
+    public static class ProcessTwitterSubmission
     {
-        [FunctionName("FetchTwitterTimeline")]
+        [FunctionName("ProcessTwitterSubmission")]
         public static async Task Run(
             [QueueTrigger("submissions", Connection = "AzureWebJobsStorage")] string username,
             [Table("users", "{queueTrigger}", "{queueTrigger}", Connection = "AzureWebJobsStorage")] UserEntity user,
