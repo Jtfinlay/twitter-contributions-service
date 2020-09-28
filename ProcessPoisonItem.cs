@@ -18,6 +18,7 @@ namespace TwitterContributions
         public static async Task Run(
             [QueueTrigger("submissions-poison", Connection = "AzureWebJobsStorage")] string username,
             [Table("users", "{queueTrigger}", "{queueTrigger}", Connection = "AzureWebJobsStorage")] UserEntity user,
+            [Queue("manual-poison"), StorageAccount("AzureWebJobsStorage")] ICollector<string> manualQueue,
             ILogger log)
         {
             log.LogInformation($"C# Poison Queue trigger function processed: {username}");
@@ -78,9 +79,13 @@ namespace TwitterContributions
                             log.LogInformation("Updated rateLimit to " + newTime);
                         }
                     }
+
+                    throw;
                 }
 
-                throw;
+                // Unexpected error. Move to manual queue to not waste api calls.
+                manualQueue.Add(username);
+                return;
             }
 
             var hashset = new Dictionary<string, DaySummary>();
